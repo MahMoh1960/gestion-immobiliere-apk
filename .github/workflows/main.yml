@@ -30,6 +30,7 @@ jobs:
         run: |
           mkdir -p www
           cp index.html app.js style.css www/
+          cp node_modules/html2pdf.js/dist/html2pdf.bundle.min.js www/
 
       - name: Ajouter Android
         run: npx cap add android
