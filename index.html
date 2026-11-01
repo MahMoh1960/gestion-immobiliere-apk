@@ -141,6 +141,13 @@
         .pin-error { color: var(--danger); font-size: 12px; min-height: 18px; margin: 8px 0; }
         .pin-card .btn-backup { width: 100%; }
 
+        .config-box.settings-box { padding: 0; }
+        .settings-box > details { margin: 0; border-top: none; padding: 0; }
+        .settings-box > details > summary { padding: 14px 12px; font-size: 15px; }
+        .settings-body { padding: 0 12px 12px; }
+        .settings-body details { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+        .settings-owner { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+
         .month-picker { text-align: center; margin-bottom: 15px; }
         .month-picker input { min-width: 220px; padding: 8px 12px; font-size: 15px; border-radius: 8px; border: 1px solid var(--input-border); font-weight: bold; background: var(--input-bg); color: var(--text); }
 
@@ -353,53 +360,56 @@
         <h1>🏠 Gestion de Maisons & Quittances</h1>
     </div>
 
-    <div class="config-box">
-        <div class="config-grid">
-            <div class="form-group">
-                <label>Nom du Propriétaire :</label>
-                <input type="text" id="ownerName" value="" placeholder="Votre nom" oninput="saveOwnerConfig()">
-            </div>
-            <div class="form-group">
-                <label>Ville d'établissement :</label>
-                <input type="text" id="ownerCity" value="" placeholder="Ex : Casablanca" oninput="saveOwnerConfig()">
-            </div>
+    <div class="config-box settings-box">
+        <details id="settingsDetails">
+            <summary id="settingsSummary">⚙️ Réglages</summary>
+            <div class="settings-body">
 
-            <details>
-                <summary>⚙️ Configuration des Maisons (Adresses & Loyers par défaut)</summary>
-                <div id="presetsConfigList" class="preset-grid"></div>
-                <button class="btn-small-add" onclick="addPreset()">➕ Ajouter une maison à la configuration</button>
-            </details>
-        </div>
-    </div>
+                <div class="settings-owner">
+                    <div class="form-group">
+                        <label>Nom du Propriétaire :</label>
+                        <input type="text" id="ownerName" value="" placeholder="Votre nom" oninput="saveOwnerConfig()">
+                    </div>
+                    <div class="form-group">
+                        <label>Ville d'établissement :</label>
+                        <input type="text" id="ownerCity" value="" placeholder="Ex : Casablanca" oninput="saveOwnerConfig()">
+                    </div>
+                </div>
 
-    <div class="config-box backup-box">
-        <details>
-            <summary id="backupSummary">💾 Sauvegarde & restauration des données</summary>
-            <p class="backup-note">
-                Le fichier de sauvegarde (.json) contient vos maisons, locataires, téléphones et reçus de tous les mois.
-                Conservez-le dans un endroit privé (Drive, e-mail personnel…).
-            </p>
-            <div class="backup-actions">
-                <button class="btn-backup" onclick="exportBackup()">⬇️ Sauvegarder</button>
-                <button class="btn-backup btn-restore" onclick="document.getElementById('backupFile').click()">⬆️ Restaurer</button>
-            </div>
-            <input type="file" id="backupFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
-            <div id="backupStatus" class="backup-status"></div>
-        </details>
-    </div>
+                <details>
+                    <summary>🏠 Configuration des Maisons (Adresses & Loyers par défaut)</summary>
+                    <div id="presetsConfigList" class="preset-grid"></div>
+                    <button class="btn-small-add" onclick="addPreset()">➕ Ajouter une maison à la configuration</button>
+                </details>
 
-    <div class="config-box backup-box">
-        <details>
-            <summary id="securitySummary">🔒 Sécurité : code PIN (optionnel)</summary>
-            <p class="backup-note">
-                Le code PIN verrouille l'écran de l'application à l'ouverture et après 30 secondes d'absence.
-                Il protège l'accès à l'écran ; il ne chiffre pas les données ni le fichier de sauvegarde.
-            </p>
-            <div id="pinStatus" class="backup-status"></div>
-            <div class="backup-actions" style="margin-top:8px">
-                <button class="btn-backup" id="pinBtnOn" style="grid-column: 1 / -1" onclick="enablePin()">Activer le code PIN</button>
-                <button class="btn-backup" id="pinBtnChange" onclick="changePin()">Modifier le code</button>
-                <button class="btn-backup btn-restore" id="pinBtnOff" onclick="disablePin()">Désactiver</button>
+                <details>
+                    <summary id="backupSummary">💾 Sauvegarde & restauration des données</summary>
+                    <p class="backup-note">
+                        Le fichier de sauvegarde (.json) contient vos maisons, locataires, téléphones et reçus de tous les mois.
+                        Conservez-le dans un endroit privé (Drive, e-mail personnel…).
+                    </p>
+                    <div class="backup-actions">
+                        <button class="btn-backup" onclick="exportBackup()">⬇️ Sauvegarder</button>
+                        <button class="btn-backup btn-restore" onclick="document.getElementById('backupFile').click()">⬆️ Restaurer</button>
+                    </div>
+                    <input type="file" id="backupFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
+                    <div id="backupStatus" class="backup-status"></div>
+                </details>
+
+                <details>
+                    <summary id="securitySummary">🔒 Sécurité : code PIN (optionnel)</summary>
+                    <p class="backup-note">
+                        Le code PIN verrouille l'écran de l'application à l'ouverture et après 30 secondes d'absence.
+                        Il protège l'accès à l'écran ; il ne chiffre pas les données ni le fichier de sauvegarde.
+                    </p>
+                    <div id="pinStatus" class="backup-status"></div>
+                    <div class="backup-actions" style="margin-top:8px">
+                        <button class="btn-backup" id="pinBtnOn" style="grid-column: 1 / -1" onclick="enablePin()">Activer le code PIN</button>
+                        <button class="btn-backup" id="pinBtnChange" onclick="changePin()">Modifier le code</button>
+                        <button class="btn-backup btn-restore" id="pinBtnOff" onclick="disablePin()">Désactiver</button>
+                    </div>
+                </details>
+
             </div>
         </details>
     </div>
@@ -1242,6 +1252,8 @@
             if (overdue) el.textContent += ' — pensez à sauvegarder.';
             el.className = 'backup-status' + (overdue ? ' warn' : '');
             sum.textContent = '💾 Sauvegarde & restauration des données' + (overdue ? ' ⚠️' : '');
+            var ss = document.getElementById('settingsSummary');
+            if (ss) ss.textContent = '⚙️ Réglages' + (overdue ? ' ⚠️' : '');
         }
 
         /* ---------- Reprise du mois précédent ---------- */
