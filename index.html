@@ -3,58 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f4f6f9">
     <title>Gestion Immobilière - Quittances</title>
+    <!-- Appliquer le thème avant l'affichage (évite le flash blanc) -->
+    <script>
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem('app_theme'); } catch (e) {}
+            if (t !== 'dark' && t !== 'light') {
+                t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <!-- Script pour la génération directe de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
             --primary: #2c3e50;
+            --title: #2c3e50;
             --accent: #2980b9;
             --success: #27ae60;
             --danger: #c0392b;
             --bg: #f4f6f9;
             --card-bg: #ffffff;
+            --text: #333333;
+            --muted: #7f8c8d;
+            --label: #555555;
+            --border: #eeeeee;
+            --input-border: #dddddd;
+            --input-bg: #ffffff;
+            --soft-bg: #f8f9fa;
+            --soft-border: #e9ecef;
+            --paid-bg: #e8f8f5;
+            --unpaid-bg: #fdebd0;
+            --rent-bg: #f9fdfa;
+            --del-bg: #fceae8;
+            --readonly-bg: #eeeeee;
+            color-scheme: light;
+        }
+
+        /* ===== Thème sombre (nuit) ===== */
+        :root[data-theme="dark"] {
+            --primary: #34495e;
+            --title: #e8eef5;
+            --accent: #4aa3df;
+            --success: #3ecf8e;
+            --danger: #ff7b6b;
+            --bg: #10151c;
+            --card-bg: #1a222d;
+            --text: #e3e8ef;
+            --muted: #9aa7b5;
+            --label: #b4c0cd;
+            --border: #2c3846;
+            --input-border: #3a4857;
+            --input-bg: #121921;
+            --soft-bg: #151c26;
+            --soft-border: #2c3846;
+            --paid-bg: #12352b;
+            --unpaid-bg: #3d2f17;
+            --rent-bg: #12261d;
+            --del-bg: #3a1f1c;
+            --readonly-bg: #2a3441;
+            color-scheme: dark;
         }
 
         * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        body { background: var(--bg); margin: 0; padding: 12px; color: #333; }
-        
+        body { background: var(--bg); margin: 0; padding: 12px; color: var(--text); transition: background .2s, color .2s; }
+        ::placeholder { color: var(--muted); opacity: .7; }
+
+        .toolbar { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+        .btn-theme { background: var(--card-bg); color: var(--text); border: 1px solid var(--input-border); border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: bold; cursor: pointer; }
+
         .header { text-align: center; margin-bottom: 15px; }
-        .header h1 { margin: 0; font-size: 20px; color: var(--primary); }
-        
-        .config-box { background: white; padding: 12px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .header h1 { margin: 0; font-size: 20px; color: var(--title); }
+
+        .config-box { background: var(--card-bg); padding: 12px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        
+
         .full-width { grid-column: span 2; }
 
-        details { margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; grid-column: span 2; }
+        details { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; grid-column: span 2; }
         summary { font-weight: bold; font-size: 13px; color: var(--accent); cursor: pointer; }
-        .preset-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; max-height: 280px; overflow-y: auto; padding-right: 5px; }
-        .preset-item { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #e9ecef; }
-        .preset-item label { font-size: 11px; font-weight: bold; color: var(--primary); }
-        .preset-row { display: grid; grid-template-columns: 1fr 1fr 110px; gap: 6px; margin-top: 4px; }
+        .preset-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; max-height: 340px; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
+        .preset-item { background: var(--soft-bg); padding: 8px; border-radius: 6px; border: 1px solid var(--soft-border); }
+        .preset-head { display: flex; justify-content: space-between; align-items: center; }
+        .preset-item label { font-size: 11px; font-weight: bold; color: var(--title); }
+        .preset-row { display: grid; grid-template-columns: 1fr 120px; gap: 6px; margin-top: 6px; }
+        .preset-row input { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--input-border); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text); }
+        .preset-row .span2 { grid-column: 1 / -1; }
+        .btn-small-add { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 10px; width: 100%; margin-top: 8px; font-weight: bold; font-size: 12px; cursor: pointer; }
 
         .month-picker { text-align: center; margin-bottom: 15px; }
-        .month-picker input { padding: 8px 12px; font-size: 15px; border-radius: 8px; border: 1px solid #ccc; font-weight: bold; background: white; }
+        .month-picker input { padding: 8px 12px; font-size: 15px; border-radius: 8px; border: 1px solid var(--input-border); font-weight: bold; background: var(--input-bg); color: var(--text); }
 
-        .dashboard { display: grid; grid-template-columns: 1fr; margin-bottom: 15px; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .kpi { background: var(--card-bg); padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .kpi span { font-size: 11px; text-transform: uppercase; color: #7f8c8d; font-weight: bold; display: block; }
-        .kpi strong { font-size: 16px; margin-top: 4px; display: block; color: var(--primary); }
+        .kpi span { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: bold; display: block; }
+        .kpi strong { font-size: 16px; margin-top: 4px; display: block; color: var(--title); }
+        .kpi.collected { grid-column: span 2; }
         .kpi.collected strong { color: var(--success); }
+        .kpi.remaining strong { color: var(--danger); }
 
         .houses-container { display: flex; flex-direction: column; gap: 15px; }
+        .empty { text-align: center; color: var(--muted); padding: 20px; font-size: 13px; }
         .house-card { background: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
-        
-        .house-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .house-header strong { font-size: 16px; color: var(--primary); }
-        
+
+        .house-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .house-header strong { font-size: 16px; color: var(--title); }
+
         .form-group { margin-bottom: 8px; }
-        .form-group label { display: block; font-size: 11px; font-weight: bold; color: #555; margin-bottom: 2px; }
-        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
-        
-        .rent-input { border: 2px solid var(--success) !important; background-color: #f9fdfa !important; font-weight: bold; color: var(--success); }
+        .form-group label { display: block; font-size: 11px; font-weight: bold; color: var(--label); margin-bottom: 2px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid var(--input-border); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text); }
+
+        .rent-input { border: 2px solid var(--success) !important; background-color: var(--rent-bg) !important; font-weight: bold; color: var(--success) !important; }
         .rent-label { color: var(--success) !important; font-size: 12px !important; }
+        .st-paid { background-color: var(--paid-bg) !important; }
+        .st-unpaid { background-color: var(--unpaid-bg) !important; }
+        .readonly { background-color: var(--readonly-bg) !important; }
 
         .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
@@ -65,11 +131,13 @@
         .btn-pdf { background: #e74c3c; color: white; }
         .btn-print { background: #3498db; color: white; }
         .btn-add { background: var(--primary); color: white; width: 100%; padding: 12px; font-size: 14px; border-radius: 8px; margin: 15px 0 30px; cursor: pointer; }
-        .btn-del { background: #fceae8; color: var(--danger); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        .btn-del { background: var(--del-bg); color: var(--danger); border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
 
         /* ============================================================ */
-        /* STYLES DU REÇU CONFORMES AU FORMAT IMAGE                     */
+        /* STYLES DU REÇU (toujours en clair : PDF / impression)        */
         /* ============================================================ */
+        #receipt-template { background: #ffffff; color: #2b2b2b; }
+
         .receipt-box {
             width: 100%;
             max-width: 580px;
@@ -218,6 +286,7 @@
         }
 
         @media print {
+            html, body { background: #ffffff !important; }
             body * { visibility: hidden; }
             #receipt-template, #receipt-template * { visibility: visible; }
             #receipt-template { position: absolute; left: 0; top: 0; width: 100%; }
@@ -225,6 +294,10 @@
     </style>
 </head>
 <body>
+
+    <div class="toolbar">
+        <button class="btn-theme" id="themeBtn" onclick="toggleTheme()">🌙 Mode nuit</button>
+    </div>
 
     <div class="header">
         <h1>🏠 Gestion de Maisons & Quittances</h1>
@@ -234,16 +307,17 @@
         <div class="config-grid">
             <div class="form-group">
                 <label>Nom du Propriétaire :</label>
-                <input type="text" id="ownerName" value="KOUAKOU KOFFI Christian" onchange="saveOwnerConfig()">
+                <input type="text" id="ownerName" value="" placeholder="Votre nom" oninput="saveOwnerConfig()">
             </div>
             <div class="form-group">
                 <label>Ville d'établissement :</label>
-                <input type="text" id="ownerCity" value="Abidjan" onchange="saveOwnerConfig()">
+                <input type="text" id="ownerCity" value="" placeholder="Ex : Casablanca" oninput="saveOwnerConfig()">
             </div>
 
             <details>
                 <summary>⚙️ Configuration des Maisons (Adresses & Loyers par défaut)</summary>
                 <div id="presetsConfigList" class="preset-grid"></div>
+                <button class="btn-small-add" onclick="addPreset()">➕ Ajouter une maison à la configuration</button>
             </details>
         </div>
     </div>
@@ -255,19 +329,31 @@
     <div class="dashboard">
         <div class="kpi collected">
             <span>Total Encaissé ce Mois</span>
-            <strong id="totalCollected">0 FCFA</strong>
+            <strong id="totalCollected">0 DH</strong>
+        </div>
+        <div class="kpi">
+            <span>Attendu</span>
+            <strong id="totalExpected">0 DH</strong>
+        </div>
+        <div class="kpi remaining">
+            <span>Reste à encaisser</span>
+            <strong id="totalRemaining">0 DH</strong>
         </div>
     </div>
 
     <div id="housesList" class="houses-container"></div>
 
-    <button class="btn btn-add" onclick="addHouse()">➕ Ajouter un reçu/maison</button>
+    <button class="btn btn-add" onclick="addHouse()">➕ Ajouter une maison / un reçu</button>
 
     <div id="receipt-template" style="display:none;"></div>
 
     <script>
-        var DEFAULT_ADDRESS = "DALOA BALOUZON 2 TOMBEAUX";
-        
+        var CURRENCY = "DH";
+        var DEFAULT_ADDRESS = "";
+        var DEFAULT_PHONE = "+212";
+        var DEFAULT_RENT = 2000;
+        var PAYMENT_MODES = ["Espèces", "Virement", "Chèque", "Cash Plus", "Wafacash"];
+
         var FIXED_LOGO_DATA = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
             '<svg width="160" height="40" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg">' +
             '<rect width="40" height="40" rx="8" fill="#2c3e50"/>' +
@@ -278,28 +364,73 @@
         );
 
         var defaultPresets = [
-            { id: 1, name: "Maison 1", address: DEFAULT_ADDRESS, rent: 120000 },
-            { id: 2, name: "Maison 2", address: DEFAULT_ADDRESS, rent: 120000 },
-            { id: 3, name: "Maison 3", address: DEFAULT_ADDRESS, rent: 120000 },
-            { id: 4, name: "Maison 4", address: DEFAULT_ADDRESS, rent: 120000 }
+            { id: 1, name: "Maison 1", address: DEFAULT_ADDRESS, rent: DEFAULT_RENT },
+            { id: 2, name: "Maison 2", address: DEFAULT_ADDRESS, rent: DEFAULT_RENT },
+            { id: 3, name: "Maison 3", address: DEFAULT_ADDRESS, rent: DEFAULT_RENT },
+            { id: 4, name: "Maison 4", address: DEFAULT_ADDRESS, rent: DEFAULT_RENT }
         ];
 
         var housePresets = [];
         var period = "";
         var houses = [];
 
+        /* ---------- Utilitaires ---------- */
+        function esc(s) {
+            return String(s === undefined || s === null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function formatMoney(n) {
+            return (Number(n) || 0).toLocaleString('fr-FR') + ' ' + CURRENCY;
+        }
+
+        function houseTotal(h) {
+            return (parseFloat(h.rent) || 0) * (parseInt(h.monthsCount) || 1);
+        }
+
+        function getOwnerName() { return localStorage.getItem('app_owner_name') || ''; }
+        function getOwnerCity() { return localStorage.getItem('app_owner_city') || ''; }
+
+        /* Numéro : accepte 06 12 34 56 78, 0612345678, 00212..., +212... */
+        function normalizePhone(p) {
+            var c = (p || '').replace(/[^0-9+]/g, '');
+            if (c.indexOf('00') === 0) c = '+' + c.slice(2);
+            else if (/^0\d{9}$/.test(c)) c = '+212' + c.slice(1);
+            if (c === '+225' || c === '+212' || c === '+') c = '';
+            return c;
+        }
+
+        /* ---------- Thème clair / nuit ---------- */
+        function applyTheme(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            var b = document.getElementById('themeBtn');
+            if (b) b.textContent = (t === 'dark') ? '☀️ Mode clair' : '🌙 Mode nuit';
+            var m = document.querySelector('meta[name="theme-color"]');
+            if (m) m.setAttribute('content', t === 'dark' ? '#10151c' : '#f4f6f9');
+        }
+
+        function toggleTheme() {
+            var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            var next = cur === 'dark' ? 'light' : 'dark';
+            try { localStorage.setItem('app_theme', next); } catch (e) {}
+            applyTheme(next);
+        }
+
+        /* ---------- Nombre en lettres ---------- */
         function numberToWordsFR(n) {
             if (n === 0) return "zéro";
             var units = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf"];
             var tens = ["", "dix", "vingt", "trente", "quarante", "cinquante", "soixante", "soixante-dix", "quatre-vingts", "quatre-vingt-dix"];
 
-            function convertGroup(num) {
+            // noS = true devant « mille » (invariable : « deux cent mille », « quatre-vingt mille »)
+            function convertGroup(num, noS) {
                 let res = "";
                 let h = Math.floor(num / 100);
                 let r = num % 100;
                 if (h > 0) {
                     if (h === 1) res += "cent";
-                    else res += units[h] + " cent" + (r === 0 ? "s" : "");
+                    else res += units[h] + " cent" + (r === 0 && !noS ? "s" : "");
                 }
                 if (r > 0) {
                     if (res !== "") res += " ";
@@ -313,7 +444,7 @@
                         } else if (t === 9) {
                             res += "quatre-vingt" + "-" + units[10 + u];
                         } else if (t === 8) {
-                            res += "quatre-vingt" + (u === 0 ? "s" : "-" + units[u]);
+                            res += "quatre-vingt" + (u === 0 ? (noS ? "" : "s") : "-" + units[u]);
                         } else {
                             res += tens[t] + (u === 1 ? " et un" : (u > 0 ? "-" + units[u] : ""));
                         }
@@ -333,7 +464,7 @@
             }
             if (thousands > 0) {
                 if (thousands === 1) str += "mille ";
-                else str += convertGroup(thousands) + " mille ";
+                else str += convertGroup(thousands, true) + " mille ";
             }
             if (remainder > 0 || str === "") {
                 str += convertGroup(remainder);
@@ -344,10 +475,10 @@
 
         function amountInWordsFR(amount) {
             var num = parseInt(amount) || 0;
-            if (num === 0) return "Zéro franc CFA";
+            if (num === 0) return "Zéro dirham";
             var words = numberToWordsFR(num);
             words = words.charAt(0).toUpperCase() + words.slice(1);
-            return words + " francs CFA";
+            return words + (num === 1 ? " dirham" : " dirhams");
         }
 
         function formatFrenchDate(dateStr) {
@@ -372,24 +503,39 @@
         }
 
         function saveOwnerConfig() {
-            var owner = document.getElementById('ownerName').value;
-            var city = document.getElementById('ownerCity').value;
-            localStorage.setItem('app_owner_name', owner);
-            localStorage.setItem('app_owner_city', city);
+            localStorage.setItem('app_owner_name', document.getElementById('ownerName').value);
+            localStorage.setItem('app_owner_city', document.getElementById('ownerCity').value);
+        }
+
+        /* ---------- Configuration des maisons (illimitée) ---------- */
+        function savePresets() {
+            localStorage.setItem('app_house_presets', JSON.stringify(housePresets));
+        }
+
+        function nextPresetId() {
+            return housePresets.reduce(function(m, p) { return Math.max(m, parseInt(p.id) || 0); }, 0) + 1;
+        }
+
+        function nextHouseId() {
+            return houses.reduce(function(m, h) { return Math.max(m, parseInt(h.id) || 0); }, 0) + 1;
         }
 
         function renderPresetsConfig() {
             var container = document.getElementById('presetsConfigList');
             if (!container) return;
             var html = '';
+            if (housePresets.length === 0) {
+                html = '<div class="empty">Aucune maison configurée.</div>';
+            }
             for (var i = 0; i < housePresets.length; i++) {
                 var p = housePresets[i];
                 html += '<div class="preset-item">';
-                html += '<label>Propriété N°' + p.id + ' :</label>';
+                html += '<div class="preset-head"><label>Propriété N°' + (i + 1) + ' :</label>';
+                html += '<button class="btn-del" onclick="deletePreset(' + i + ')">Supprimer</button></div>';
                 html += '<div class="preset-row">';
-                html += '<input type="text" value="' + (p.name || '') + '" placeholder="Nom (ex: Villa 1)" onchange="updatePreset(' + i + ', \'name\', this.value)">';
-                html += '<input type="text" value="' + (p.address || '') + '" placeholder="Adresse" onchange="updatePreset(' + i + ', \'address\', this.value)">';
-                html += '<input type="number" value="' + (p.rent !== undefined ? p.rent : '') + '" placeholder="Loyer de base" onchange="updatePreset(' + i + ', \'rent\', this.value)">';
+                html += '<input type="text" value="' + esc(p.name) + '" placeholder="Nom (ex: Villa 1)" onchange="updatePreset(' + i + ', \'name\', this.value)">';
+                html += '<input type="number" value="' + esc(p.rent !== undefined ? p.rent : '') + '" placeholder="Loyer (' + CURRENCY + ')" onchange="updatePreset(' + i + ', \'rent\', this.value)">';
+                html += '<input type="text" class="span2" value="' + esc(p.address) + '" placeholder="Adresse" onchange="updatePreset(' + i + ', \'address\', this.value)">';
                 html += '</div></div>';
             }
             container.innerHTML = html;
@@ -397,12 +543,57 @@
 
         function updatePreset(idx, field, value) {
             housePresets[idx][field] = field === 'rent' ? parseFloat(value) || 0 : value;
-            localStorage.setItem('app_house_presets', JSON.stringify(housePresets));
+            savePresets();
             render();
         }
 
+        function addPreset() {
+            var preset = {
+                id: nextPresetId(),
+                name: "Maison " + (housePresets.length + 1),
+                address: DEFAULT_ADDRESS,
+                rent: DEFAULT_RENT
+            };
+            housePresets.push(preset);
+            savePresets();
+            houses.push(newHouseFromPreset(preset));
+            saveData();
+            renderPresetsConfig();
+            render();
+            var list = document.getElementById('presetsConfigList');
+            if (list) list.scrollTop = list.scrollHeight;
+        }
+
+        function deletePreset(idx) {
+            if (!confirm("Supprimer cette maison de la configuration ?\n(Les reçus déjà saisis sont conservés.)")) return;
+            housePresets.splice(idx, 1);
+            savePresets();
+            renderPresetsConfig();
+            render();
+        }
+
+        /* ---------- Données du mois ---------- */
+        function newHouseFromPreset(preset) {
+            return {
+                id: nextHouseId(),
+                presetId: preset ? preset.id : null,
+                title: preset ? preset.name : ("Maison " + (houses.length + 1)),
+                address: preset ? (preset.address || DEFAULT_ADDRESS) : DEFAULT_ADDRESS,
+                tenant: "",
+                phone: DEFAULT_PHONE,
+                rent: (preset && preset.rent !== undefined) ? preset.rent : DEFAULT_RENT,
+                paymentType: "Loyer",
+                monthsCount: 1,
+                paid: false,
+                paymentMode: "Espèces",
+                paymentDate: new Date().toISOString().split('T')[0]
+            };
+        }
+
         function changePeriod() {
-            period = document.getElementById('currentPeriod').value;
+            var v = document.getElementById('currentPeriod').value;
+            if (!v) return;
+            period = v;
             loadData();
         }
 
@@ -413,30 +604,21 @@
                     houses = JSON.parse(saved);
                     for (var i = 0; i < houses.length; i++) {
                         houses[i].tenant = houses[i].tenant || "";
-                        // Si le numéro est vide, on initialise avec +225
-                        houses[i].phone = houses[i].phone || "+225";
+                        houses[i].phone = houses[i].phone || DEFAULT_PHONE;
                     }
                 } catch(e) {
                     houses = [];
                 }
             } else {
-                houses = [1].map(function(id) {
-                    var preset = housePresets.find(function(p) { return p.id === id; }) || { name: "Maison " + id, address: DEFAULT_ADDRESS, rent: 120000 };
-                    return {
-                        id: id,
-                        presetId: id,
-                        title: preset.name,
-                        address: preset.address || DEFAULT_ADDRESS,
-                        tenant: "",
-                        phone: "+225",
-                        rent: preset.rent || 120000,
-                        paymentType: "Loyer",
-                        monthsCount: 1,
-                        paid: false,
-                        paymentMode: "Espèces",
-                        paymentDate: new Date().toISOString().split('T')[0]
-                    };
-                });
+                // Nouveau mois : une fiche par maison configurée
+                houses = [];
+                if (housePresets.length === 0) {
+                    houses.push(newHouseFromPreset(null));
+                } else {
+                    for (var k = 0; k < housePresets.length; k++) {
+                        houses.push(newHouseFromPreset(housePresets[k]));
+                    }
+                }
             }
             render();
         }
@@ -447,13 +629,15 @@
         }
 
         function calculateTotals() {
-            var total = houses.reduce(function(acc, h) {
-                if (!h.paid) return acc;
-                var baseRent = parseFloat(h.rent) || 0;
-                var multiplier = parseInt(h.monthsCount) || 1;
-                return acc + (baseRent * multiplier);
-            }, 0);
-            document.getElementById('totalCollected').innerText = total.toLocaleString('fr-FR') + ' FCFA';
+            var collected = 0, expected = 0;
+            for (var i = 0; i < houses.length; i++) {
+                var amt = houseTotal(houses[i]);
+                expected += amt;
+                if (houses[i].paid) collected += amt;
+            }
+            document.getElementById('totalCollected').textContent = formatMoney(collected);
+            document.getElementById('totalExpected').textContent = formatMoney(expected);
+            document.getElementById('totalRemaining').textContent = formatMoney(expected - collected);
         }
 
         function updateValue(index, field, value) {
@@ -489,25 +673,13 @@
         }
 
         function addHouse() {
-            var newIdx = houses.length + 1;
-            var preset = housePresets.find(function(p) { return p.id === newIdx; }) || { name: "Maison " + newIdx, address: DEFAULT_ADDRESS, rent: 120000 };
-            
-            houses.push({
-                id: newIdx,
-                presetId: newIdx > 4 ? 1 : newIdx,
-                title: preset.name || ("Maison " + newIdx),
-                address: preset.address || DEFAULT_ADDRESS,
-                tenant: "",
-                phone: "+225",
-                rent: preset.rent || 120000,
-                paymentType: "Loyer",
-                monthsCount: 1,
-                paid: false,
-                paymentMode: "Espèces",
-                paymentDate: new Date().toISOString().split('T')[0]
-            });
+            var used = houses.map(function(h) { return h.presetId; });
+            var preset = housePresets.find(function(p) { return used.indexOf(p.id) === -1; }) || null;
+            houses.push(newHouseFromPreset(preset));
             saveData();
             render();
+            var cards = document.querySelectorAll('.house-card');
+            if (cards.length) cards[cards.length - 1].scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function deleteHouse(index) {
@@ -518,10 +690,22 @@
             }
         }
 
+        function modeOptions(current) {
+            var list = PAYMENT_MODES.slice();
+            if (current && list.indexOf(current) === -1) list.push(current); // conserve les anciennes valeurs
+            return list.map(function(m) {
+                return '<option value="' + esc(m) + '"' + (m === current ? ' selected' : '') + '>' + esc(m) + '</option>';
+            }).join('');
+        }
+
         function render() {
             var container = document.getElementById('housesList');
             if (!container) return;
             var html = '';
+
+            if (houses.length === 0) {
+                html += '<div class="empty">Aucune maison pour ce mois. Appuyez sur « Ajouter » ci-dessous.</div>';
+            }
 
             for (var index = 0; index < houses.length; index++) {
                 var house = houses[index];
@@ -530,16 +714,15 @@
                 for (var j = 0; j < housePresets.length; j++) {
                     var p = housePresets[j];
                     var isSelected = (house.presetId == p.id) ? 'selected' : '';
-                    var addrText = p.address ? ' - (' + p.address.substring(0, 15) + '...)' : '';
-                    selectOptions += '<option value="' + p.id + '" ' + isSelected + '>' + p.name + addrText + '</option>';
+                    var addrText = p.address ? ' - (' + esc(String(p.address).substring(0, 15)) + '...)' : '';
+                    selectOptions += '<option value="' + esc(p.id) + '" ' + isSelected + '>' + esc(p.name) + addrText + '</option>';
                 }
 
-                var paidBg = house.paid ? '#e8f8f5' : '#fdebd0';
                 var isCaution = house.paymentType === 'Caution';
 
                 html += '<div class="house-card">';
                 html += '  <div class="house-header">';
-                html += '    <strong>' + (house.title || ('Maison ' + (index + 1))) + '</strong>';
+                html += '    <strong>' + esc(house.title || ('Maison ' + (index + 1))) + '</strong>';
                 html += '    <button class="btn-del" onclick="deleteHouse(' + index + ')">Supprimer</button>';
                 html += '  </div>';
 
@@ -548,13 +731,13 @@
                 html += '    <select onchange="onSelectHousePreset(' + index + ', this.value)">' + selectOptions + '</select>';
                 html += '  </div>';
 
-                html += '  <div class="form-group"><label>Nom du Logement :</label><input type="text" value="' + (house.title || '') + '" placeholder="Ex: Maison 1" onchange="updateValue(' + index + ', \'title\', this.value)"></div>';
+                html += '  <div class="form-group"><label>Nom du Logement :</label><input type="text" value="' + esc(house.title) + '" placeholder="Ex: Maison 1" onchange="updateValue(' + index + ', \'title\', this.value)"></div>';
 
-                html += '  <div class="form-group"><label>Adresse / Description du Logement :</label><input type="text" value="' + (house.address || DEFAULT_ADDRESS) + '" placeholder="Ex: DALOA BALOUZON 2 TOMBEAUX" onchange="updateValue(' + index + ', \'address\', this.value)"></div>';
+                html += '  <div class="form-group"><label>Adresse / Description du Logement :</label><input type="text" value="' + esc(house.address || DEFAULT_ADDRESS) + '" placeholder="Adresse du logement" onchange="updateValue(' + index + ', \'address\', this.value)"></div>';
 
                 html += '  <div class="row-2">';
-                html += '    <div class="form-group"><label>Locataire :</label><input type="text" value="' + (house.tenant || '') + '" placeholder="Ex: N\'dri affoue Marina" onchange="updateValue(' + index + ', \'tenant\', this.value)"></div>';
-                html += '    <div class="form-group"><label>Téléphone / WhatsApp :</label><input type="tel" value="' + (house.phone || '+225') + '" placeholder="Ex: +2250700000000" onchange="updateValue(' + index + ', \'phone\', this.value)"></div>';
+                html += '    <div class="form-group"><label>Locataire :</label><input type="text" value="' + esc(house.tenant) + '" placeholder="Nom du locataire" onchange="updateValue(' + index + ', \'tenant\', this.value)"></div>';
+                html += '    <div class="form-group"><label>Téléphone / WhatsApp :</label><input type="tel" value="' + esc(house.phone || DEFAULT_PHONE) + '" placeholder="Ex: 0612345678" onchange="updateValue(' + index + ', \'phone\', this.value)"></div>';
                 html += '  </div>';
 
                 html += '  <div class="row-2">';
@@ -569,20 +752,20 @@
                 html += '    <div class="form-group">';
                 html += '      <label>Nombre de Mois :</label>';
                 html += '      <div style="display: flex; align-items: center; gap: 6px;">';
-                html += '        <input type="number" ' + (isCaution ? 'readonly style="background:#eee;"' : '') + ' value="' + (house.monthsCount || 1) + '" min="1" onchange="updateValue(' + index + ', \'monthsCount\', this.value)">';
+                html += '        <input type="number" ' + (isCaution ? 'readonly class="readonly"' : '') + ' value="' + esc(house.monthsCount || 1) + '" min="1" onchange="updateValue(' + index + ', \'monthsCount\', this.value)">';
                 if (isCaution) {
-                    html += '    <span style="font-size:10px; color:#c0392b; font-weight:bold; white-space:nowrap;">(Double du loyer)</span>';
+                    html += '    <span style="font-size:10px; color:var(--danger); font-weight:bold; white-space:nowrap;">(Double du loyer)</span>';
                 }
                 html += '      </div>';
                 html += '    </div>';
                 html += '  </div>';
 
                 html += '  <div class="row-2">';
-                html += '    <div class="form-group"><label class="rent-label">💰 Loyer de base (FCFA) :</label><input type="number" class="rent-input" value="' + (house.rent !== undefined ? house.rent : '') + '" placeholder="Montant du loyer" onchange="updateValue(' + index + ', \'rent\', this.value)"></div>';
-                
+                html += '    <div class="form-group"><label class="rent-label">💰 Loyer de base (' + CURRENCY + ') :</label><input type="number" class="rent-input" value="' + esc(house.rent !== undefined ? house.rent : '') + '" placeholder="Montant du loyer" onchange="updateValue(' + index + ', \'rent\', this.value)"></div>';
+
                 html += '    <div class="form-group">';
                 html += '      <label>Statut du Paiement :</label>';
-                html += '      <select onchange="updateValue(' + index + ', \'paid\', this.value === \'true\')" style="background-color: ' + paidBg + '">';
+                html += '      <select class="' + (house.paid ? 'st-paid' : 'st-unpaid') + '" onchange="updateValue(' + index + ', \'paid\', this.value === \'true\')">';
                 html += '        <option value="false" ' + (!house.paid ? 'selected' : '') + '>❌ Non Payé</option>';
                 html += '        <option value="true" ' + (house.paid ? 'selected' : '') + '>✅ Payé</option>';
                 html += '      </select>';
@@ -592,15 +775,9 @@
                 html += '  <div class="row-2">';
                 html += '    <div class="form-group">';
                 html += '      <label>Mode de Paiement :</label>';
-                html += '      <select onchange="updateValue(' + index + ', \'paymentMode\', this.value)">';
-                html += '        <option value="Espèces" ' + (house.paymentMode === 'Espèces' ? 'selected' : '') + '>Espèces</option>';
-                html += '        <option value="Wave" ' + (house.paymentMode === 'Wave' ? 'selected' : '') + '>Wave</option>';
-                html += '        <option value="Orange Money" ' + (house.paymentMode === 'Orange Money' ? 'selected' : '') + '>Orange Money</option>';
-                html += '        <option value="MTN Money" ' + (house.paymentMode === 'MTN Money' ? 'selected' : '') + '>MTN Money</option>';
-                html += '        <option value="Virement" ' + (house.paymentMode === 'Virement' ? 'selected' : '') + '>Virement</option>';
-                html += '      </select>';
+                html += '      <select onchange="updateValue(' + index + ', \'paymentMode\', this.value)">' + modeOptions(house.paymentMode || 'Espèces') + '</select>';
                 html += '    </div>';
-                html += '    <div class="form-group"><label>Date de Paiement :</label><input type="date" value="' + (house.paymentDate || '') + '" onchange="updateValue(' + index + ', \'paymentDate\', this.value)"></div>';
+                html += '    <div class="form-group"><label>Date de Paiement :</label><input type="date" value="' + esc(house.paymentDate || '') + '" onchange="updateValue(' + index + ', \'paymentDate\', this.value)"></div>';
                 html += '  </div>';
 
                 html += '  <div class="actions">';
@@ -616,24 +793,25 @@
             calculateTotals();
         }
 
+        /* ---------- Reçu ---------- */
         function generateReceiptHTML(house) {
-            var ownerName = localStorage.getItem('app_owner_name') || 'KOUAKOU KOFFI Christian';
-            var ownerCity = localStorage.getItem('app_owner_city') || 'Abidjan';
+            var blank = '___________________';
+            var ownerName = esc(getOwnerName() || blank);
+            var ownerCity = esc(getOwnerCity() || '__________');
+            var tenant = esc(house.tenant || blank);
 
             var formattedPaymentDate = formatFrenchDate(house.paymentDate);
-            
+
             var today = new Date();
             var yyyy = today.getFullYear();
             var mm = String(today.getMonth() + 1).padStart(2, '0');
             var dd = String(today.getDate()).padStart(2, '0');
-            var currentDateStr = yyyy + '-' + mm + '-' + dd;
-            var currentFormattedDate = formatFrenchDate(currentDateStr);
+            var currentFormattedDate = formatFrenchDate(yyyy + '-' + mm + '-' + dd);
 
             var formattedPeriod = formatFrenchPeriod(period);
-            var baseRent = parseFloat(house.rent) || 0;
             var multiplier = parseInt(house.monthsCount) || 1;
-            var totalAmount = baseRent * multiplier;
-            
+            var totalAmount = houseTotal(house);
+
             var titleTag = "QUITTANCE";
             var receiptTitle = "REÇU DE LOYER";
             if (house.paymentType === 'Caution') {
@@ -655,18 +833,18 @@
                             <h2 class="receipt-title">${receiptTitle}</h2>
                         </div>
                         <div class="receipt-number-badge">
-                            ${house.paymentType || 'Loyer'}
+                            ${esc(house.paymentType || 'Loyer')}
                         </div>
                     </div>
 
                     <p class="receipt-statement">
-                        Je soussigné(e) <i>${ownerName}</i> , propriétaire, reconnais avoir reçu de <i>${house.tenant || '___________________'}</i> la somme de :
+                        Je soussigné(e) <i>${ownerName}</i> , propriétaire, reconnais avoir reçu de <i>${tenant}</i> la somme de :
                     </p>
 
                     <hr class="receipt-divider">
 
                     <div class="amount-card">
-                        <div class="amount-number">${totalAmount.toLocaleString('fr-FR')} FCFA</div>
+                        <div class="amount-number">${formatMoney(totalAmount)}</div>
                         <div class="amount-words">(${amountInWordsFR(totalAmount)})</div>
                     </div>
 
@@ -675,11 +853,11 @@
                     <div class="receipt-details">
                         <div class="detail-row">
                             <span class="detail-label">LOCATAIRE</span>
-                            <span class="detail-value">${house.tenant || '___________________'}</span>
+                            <span class="detail-value">${tenant}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">TYPE DE PAIEMENT</span>
-                            <span class="detail-value">${house.paymentType || 'Loyer'} (${multiplier} mois)</span>
+                            <span class="detail-value">${esc(house.paymentType || 'Loyer')} (${multiplier} mois)</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">PÉRIODE</span>
@@ -687,11 +865,11 @@
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">LOGEMENT</span>
-                            <span class="detail-value">${house.title || ''}</span>
+                            <span class="detail-value">${esc(house.title || '')}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">MODE DE PAIEMENT</span>
-                            <span class="detail-value">${house.paymentMode || 'Espèces'}</span>
+                            <span class="detail-value">${esc(house.paymentMode || 'Espèces')}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">DATE DE PAIEMENT</span>
@@ -728,7 +906,7 @@
                 margin:       8,
                 filename:     (house.paymentType || 'Quittance') + '_' + (house.tenant || 'Locataire') + '_' + period + '.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
+                html2canvas:  { scale: 2, backgroundColor: '#ffffff' },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
@@ -737,46 +915,45 @@
             });
         }
 
+        /* ---------- Messages ---------- */
         function sendWhatsApp(index) {
             var house = houses[index];
-            var ownerName = localStorage.getItem('app_owner_name') || 'KOUAKOU KOFFI Christian';
-            var baseRent = parseFloat(house.rent) || 0;
+            var ownerName = getOwnerName();
             var multiplier = parseInt(house.monthsCount) || 1;
-            var totalAmount = baseRent * multiplier;
+            var totalAmount = houseTotal(house);
+            var status = house.paid ? 'Payé ✅' : 'Non payé ❌';
 
-            var msg = `Bonjour ${house.tenant || ''},\n\nVoici le récapitulatif de votre ${house.paymentType || 'paiement'} pour le mois de *${formatFrenchPeriod(period)}* :\n- *Type :* ${house.paymentType} (${multiplier} mois)\n- *Montant :* ${totalAmount.toLocaleString('fr-FR')} FCFA (${amountInWordsFR(totalAmount)})\n- *Mode de paiement :* ${house.paymentMode}\n- *Statut :* Payé ✅\n\nMerci,\n*${ownerName}*`;
-            
-            var cleanPhone = house.phone ? house.phone.replace(/[^0-9+]/g, '') : '';
-            
-            var url = (cleanPhone && cleanPhone !== '+225') 
+            var msg = `Bonjour ${house.tenant || ''},\n\nVoici le récapitulatif de votre ${house.paymentType || 'paiement'} pour le mois de *${formatFrenchPeriod(period)}* :\n- *Type :* ${house.paymentType} (${multiplier} mois)\n- *Montant :* ${formatMoney(totalAmount)} (${amountInWordsFR(totalAmount)})\n- *Mode de paiement :* ${house.paymentMode}\n- *Statut :* ${status}\n\nMerci,\n*${ownerName}*`;
+
+            var cleanPhone = normalizePhone(house.phone);
+
+            var url = cleanPhone
                 ? "https://api.whatsapp.com/send?phone=" + cleanPhone.replace('+', '') + "&text=" + encodeURIComponent(msg)
                 : "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
-                
+
             window.open(url, '_blank');
         }
 
         function sendSMS(index) {
             var house = houses[index];
-            var ownerName = localStorage.getItem('app_owner_name') || 'KOUAKOU KOFFI Christian';
-            var baseRent = parseFloat(house.rent) || 0;
-            var multiplier = parseInt(house.monthsCount) || 1;
-            var totalAmount = baseRent * multiplier;
+            var ownerName = getOwnerName();
+            var totalAmount = houseTotal(house);
+            var status = house.paid ? 'Payé' : 'Non payé';
 
-            var msg = `Bonjour ${house.tenant || ''}, reçu de ${house.paymentType || 'paiement'} (${formatFrenchPeriod(period)}) de ${totalAmount.toLocaleString('fr-FR')} FCFA. Mode: ${house.paymentMode}. Statut: Payé. Cordialement, ${ownerName}`;
-            
-            var cleanPhone = house.phone ? house.phone.replace(/[^0-9+]/g, '') : '';
-            var phoneParam = (cleanPhone && cleanPhone !== '+225') ? cleanPhone : '';
-            
-            // Utilisation du protocole sms: standard supporté par les navigateurs mobiles et applications par défaut
-            var url = "sms:" + phoneParam + "?body=" + encodeURIComponent(msg);
+            var msg = `Bonjour ${house.tenant || ''}, reçu de ${house.paymentType || 'paiement'} (${formatFrenchPeriod(period)}) de ${formatMoney(totalAmount)}. Mode: ${house.paymentMode}. Statut: ${status}. Cordialement, ${ownerName}`;
+
+            var url = "sms:" + normalizePhone(house.phone) + "?body=" + encodeURIComponent(msg);
             window.location.href = url;
         }
 
+        /* ---------- Démarrage ---------- */
         document.addEventListener('DOMContentLoaded', function() {
             var now = new Date();
             var month = String(now.getMonth() + 1).padStart(2, '0');
             period = now.getFullYear() + '-' + month;
             document.getElementById('currentPeriod').value = period;
+
+            applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
 
             var savedName = localStorage.getItem('app_owner_name');
             var savedCity = localStorage.getItem('app_owner_city');
@@ -785,12 +962,12 @@
 
             var savedPresets = localStorage.getItem('app_house_presets');
             if (savedPresets) {
-                try { 
-                    housePresets = JSON.parse(savedPresets); 
+                try {
+                    housePresets = JSON.parse(savedPresets);
                 } catch(e) { housePresets = defaultPresets; }
             } else {
                 housePresets = defaultPresets;
-                localStorage.setItem('app_house_presets', JSON.stringify(housePresets));
+                savePresets();
             }
 
             renderPresetsConfig();
