@@ -156,7 +156,10 @@
         .empty { text-align: center; color: var(--muted); padding: 20px; font-size: 13px; }
         .house-card { background: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 5px solid var(--accent); }
 
-        .house-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .house-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 4px 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+        .house-card.open .house-header { margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .chev { color: var(--muted); font-size: 14px; margin-left: 10px; }
+        .btn-del-full { width: 100%; margin-top: 10px; background: var(--del-bg); color: var(--danger); border: none; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
         .house-header strong { font-size: 16px; color: var(--title); }
 
         .form-group { margin-bottom: 8px; }
@@ -472,6 +475,7 @@
         var housePresets = [];
         var period = "";
         var houses = [];
+        var openHouse = -1; // une seule fiche dépliée à la fois (-1 = toutes repliées)
 
         /* ---------- Utilitaires ---------- */
         function esc(s) {
@@ -697,6 +701,7 @@
         }
 
         function loadData() {
+            openHouse = -1;
             var saved = localStorage.getItem('app_houses_' + period);
             if (saved) {
                 try {
@@ -778,6 +783,7 @@
             var used = houses.map(function(h) { return h.presetId; });
             var preset = housePresets.find(function(p) { return used.indexOf(p.id) === -1; }) || null;
             houses.push(newHouseFromPreset(preset));
+            openHouse = houses.length - 1;
             saveData();
             render();
             var cards = document.querySelectorAll('.house-card');
@@ -787,8 +793,18 @@
         function deleteHouse(index) {
             if (confirm("Supprimer cette maison de la liste ?")) {
                 houses.splice(index, 1);
+                openHouse = -1;
                 saveData();
                 render();
+            }
+        }
+
+        function toggleHouse(i) {
+            openHouse = (openHouse === i) ? -1 : i;
+            render();
+            if (openHouse === i) {
+                var cards = document.querySelectorAll('.house-card');
+                if (cards[i]) cards[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
 
@@ -822,11 +838,14 @@
 
                 var isCaution = house.paymentType === 'Caution';
 
-                html += '<div class="house-card">';
-                html += '  <div class="house-header">';
+                var isOpen = (openHouse === index);
+                html += '<div class="house-card' + (isOpen ? ' open' : '') + '">';
+                html += '  <div class="house-header" onclick="toggleHouse(' + index + ')">';
                 html += '    <strong>' + esc(house.title || ('Maison ' + (index + 1))) + '</strong>';
-                html += '    <button class="btn-del" onclick="deleteHouse(' + index + ')">Supprimer</button>';
+                html += '    <span class="chev">' + (isOpen ? '▲' : '▼') + '</span>';
                 html += '  </div>';
+                if (!isOpen) { html += '</div>'; continue; }
+                html += '<div class="house-body">';
 
                 html += '  <div class="form-group">';
                 html += '    <label>📍 Charger une configuration par défaut :</label>';
@@ -889,6 +908,8 @@
                 html += '    <button class="btn btn-print" onclick="printReceipt(' + index + ')">🖨️ Impr.</button>';
                 html += '  </div>';
                 html += '  <button class="btn-hist" onclick="showHistory(' + index + ')">📊 Historique de cette maison</button>';
+                html += '  <button class="btn-del-full" onclick="deleteHouse(' + index + ')">🗑️ Supprimer cette maison</button>';
+                html += '</div>';
                 html += '</div>';
             }
 
