@@ -20,6 +20,11 @@ jobs:
         run: |
           npm install
           npm install @capacitor/core @capacitor/cli @capacitor/android
+        
+        - name: Préparer le dossier www
+        run: |
+          mkdir -p www
+          cp index.html app.js style.css www/
 
       - name: Ajouter Android
         run: |
