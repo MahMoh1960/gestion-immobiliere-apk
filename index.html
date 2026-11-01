@@ -94,8 +94,16 @@
         .preset-row .span2 { grid-column: 1 / -1; }
         .btn-small-add { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 10px; width: 100%; margin-top: 8px; font-weight: bold; font-size: 12px; cursor: pointer; }
 
+        .backup-box details { margin-top: 0; border-top: none; padding-top: 0; }
+        .backup-note { font-size: 12px; color: var(--muted); margin: 8px 0; line-height: 1.5; }
+        .backup-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-backup { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 12px 6px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .btn-restore { background: var(--primary); }
+        .backup-status { font-size: 12px; margin-top: 10px; color: var(--muted); }
+        .backup-status.warn { color: var(--danger); font-weight: bold; }
+
         .month-picker { text-align: center; margin-bottom: 15px; }
-        .month-picker input { padding: 8px 12px; font-size: 15px; border-radius: 8px; border: 1px solid var(--input-border); font-weight: bold; background: var(--input-bg); color: var(--text); }
+        .month-picker input { min-width: 220px; padding: 8px 12px; font-size: 15px; border-radius: 8px; border: 1px solid var(--input-border); font-weight: bold; background: var(--input-bg); color: var(--text); }
 
         .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .kpi { background: var(--card-bg); padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
@@ -320,6 +328,22 @@
                 <button class="btn-small-add" onclick="addPreset()">➕ Ajouter une maison à la configuration</button>
             </details>
         </div>
+    </div>
+
+    <div class="config-box backup-box">
+        <details>
+            <summary id="backupSummary">💾 Sauvegarde & restauration des données</summary>
+            <p class="backup-note">
+                Le fichier de sauvegarde (.json) contient vos maisons, locataires, téléphones et reçus de tous les mois.
+                Conservez-le dans un endroit privé (Drive, e-mail personnel…).
+            </p>
+            <div class="backup-actions">
+                <button class="btn-backup" onclick="exportBackup()">⬇️ Sauvegarder</button>
+                <button class="btn-backup btn-restore" onclick="document.getElementById('backupFile').click()">⬆️ Restaurer</button>
+            </div>
+            <input type="file" id="backupFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
+            <div id="backupStatus" class="backup-status"></div>
+        </details>
     </div>
 
     <div class="month-picker">
@@ -626,6 +650,7 @@
         function saveData() {
             localStorage.setItem('app_houses_' + period, JSON.stringify(houses));
             calculateTotals();
+            if (typeof updateBackupStatus === 'function') updateBackupStatus();
         }
 
         function calculateTotals() {
@@ -946,6 +971,143 @@
             window.location.href = url;
         }
 
+        /* ---------- Sauvegarde / restauration (JSON) ---------- */
+        var BACKUP_PREFIX = 'app_';
+        var BACKUP_EXCLUDED = ['app_theme', 'app_last_backup'];
+
+        function storageKeys() {
+            var keys = [];
+            for (var i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+            return keys;
+        }
+
+        function isBackupKey(k) {
+            return !!k && k.indexOf(BACKUP_PREFIX) === 0 && BACKUP_EXCLUDED.indexOf(k) === -1;
+        }
+
+        function collectBackup() {
+            var data = {};
+            storageKeys().forEach(function(k) {
+                if (isBackupKey(k)) data[k] = localStorage.getItem(k);
+            });
+            return { app: 'gestion-immobiliere', version: 1, exportedAt: new Date().toISOString(), data: data };
+        }
+
+        function backupFileName() {
+            var d = new Date();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            return 'sauvegarde-immobilier-' + d.getFullYear() + '-' + mm + '-' + dd + '.json';
+        }
+
+        function isNativeApp() {
+            return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+        }
+
+        function markBackupDone() {
+            localStorage.setItem('app_last_backup', new Date().toISOString());
+            updateBackupStatus();
+        }
+
+        async function exportBackup() {
+            var json = JSON.stringify(collectBackup(), null, 2);
+            var name = backupFileName();
+            try {
+                var P = window.Capacitor && window.Capacitor.Plugins;
+                if (isNativeApp() && P && P.Filesystem && P.Share) {
+                    // Application Android : écrire le fichier puis ouvrir le partage (Drive, WhatsApp, Fichiers…)
+                    var res = await P.Filesystem.writeFile({ path: name, data: json, directory: 'CACHE', encoding: 'utf8' });
+                    await P.Share.share({
+                        title: 'Sauvegarde Gestion Immobilière',
+                        text: name,
+                        url: res.uri,
+                        dialogTitle: 'Enregistrer la sauvegarde'
+                    });
+                } else {
+                    // Navigateur : téléchargement direct
+                    var blob = new Blob([json], { type: 'application/json' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = name;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+                }
+                markBackupDone();
+            } catch (e) {
+                var msg = String((e && e.message) || e);
+                if (/cancel/i.test(msg)) return;
+                alert("Échec de la sauvegarde : " + msg);
+            }
+        }
+
+        function reloadApp() { location.reload(); }
+
+        function applyBackup(obj) {
+            if (!obj || obj.app !== 'gestion-immobiliere' || !obj.data || typeof obj.data !== 'object') {
+                throw new Error("Ce fichier n'est pas une sauvegarde de cette application.");
+            }
+            var keys = Object.keys(obj.data).filter(isBackupKey);
+            var months = 0, presets = 0;
+            keys.forEach(function(k) {
+                if (typeof obj.data[k] !== 'string') throw new Error('Données corrompues (' + k + ').');
+                if (k === 'app_house_presets' || k.indexOf('app_houses_') === 0) {
+                    var v = JSON.parse(obj.data[k]);
+                    if (!Array.isArray(v)) throw new Error('Données corrompues (' + k + ').');
+                    if (k === 'app_house_presets') presets = v.length; else months++;
+                }
+            });
+            if (keys.length === 0) throw new Error('La sauvegarde est vide.');
+            var when = obj.exportedAt ? formatFrenchDate(String(obj.exportedAt).slice(0, 10)) : 'date inconnue';
+            if (!confirm('Restaurer la sauvegarde du ' + when + ' ?\n' + months + ' mois, ' + presets + ' maison(s) configurée(s).\n\nLes données actuelles seront REMPLACÉES.')) return false;
+
+            storageKeys().forEach(function(k) { if (isBackupKey(k)) localStorage.removeItem(k); });
+            keys.forEach(function(k) { localStorage.setItem(k, obj.data[k]); });
+            localStorage.setItem('app_last_backup', new Date().toISOString());
+            return true;
+        }
+
+        function importBackup(input) {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function() {
+                try {
+                    var obj = JSON.parse(reader.result);
+                    if (applyBackup(obj)) {
+                        alert('Sauvegarde restaurée.');
+                        reloadApp();
+                    }
+                } catch (e) {
+                    alert('Restauration impossible : ' + ((e && e.message) || e));
+                }
+                input.value = '';
+            };
+            reader.onerror = function() { alert('Lecture du fichier impossible.'); input.value = ''; };
+            reader.readAsText(file);
+        }
+
+        function updateBackupStatus() {
+            var el = document.getElementById('backupStatus');
+            var sum = document.getElementById('backupSummary');
+            if (!el || !sum) return;
+            var last = localStorage.getItem('app_last_backup');
+            var hasData = storageKeys().some(function(k) { return k.indexOf('app_houses_') === 0; });
+            var days = null;
+            if (last) days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+            var overdue = hasData && (days === null || days >= 30);
+            if (last) {
+                el.textContent = 'Dernière sauvegarde : ' + formatFrenchDate(last.slice(0, 10)) + (days > 0 ? ' (il y a ' + days + ' j)' : " (aujourd'hui)");
+            } else {
+                el.textContent = "Aucune sauvegarde effectuée pour l'instant.";
+            }
+            if (overdue) el.textContent += ' — pensez à sauvegarder.';
+            el.className = 'backup-status' + (overdue ? ' warn' : '');
+            sum.textContent = '💾 Sauvegarde & restauration des données' + (overdue ? ' ⚠️' : '');
+        }
+
         /* ---------- Démarrage ---------- */
         document.addEventListener('DOMContentLoaded', function() {
             var now = new Date();
@@ -972,6 +1134,7 @@
 
             renderPresetsConfig();
             loadData();
+            updateBackupStatus();
         });
     </script>
 </body>
